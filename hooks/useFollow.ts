@@ -1,0 +1,50 @@
+import axios from "axios";
+import useCurrentUser from "./useCurrentUser";
+import useUser from "./useUser";
+import useLoginModal from "./useLoginModal";
+import { useCallback, useMemo } from "react";
+import toast from "react-hot-toast";
+
+const useFollow = (userId: string) => {
+    const { data: currentUser, mutate: mutateCurrentUser } = useCurrentUser();
+    
+  const { mutate: mutateFetchedUser } = useUser(userId);
+
+  const loginModal = useLoginModal();
+
+  const isFollowing = useMemo(() => {
+    const list = currentUser?.followingIds || [];
+    return list.includes(userId);
+  }, [userId, currentUser?.followingIds]);
+
+  const toggleFollow = useCallback(async () => {
+    if (!currentUser) {
+      loginModal.onOpen();
+    }
+
+    try {
+      if (isFollowing) {
+          await axios.delete("/api/follow", { data: { userId, currentUser } });
+      } else {
+        await axios.post("/api/follow", { userId ,currentUser});
+      }
+
+      mutateCurrentUser();
+      mutateFetchedUser();
+      toast.success("Success");
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
+  }, [
+    currentUser,
+    isFollowing,
+    userId,
+    mutateCurrentUser,
+    mutateFetchedUser,
+    loginModal,
+  ]);
+    
+    return { isFollowing, toggleFollow }
+};
+
+export default useFollow;
